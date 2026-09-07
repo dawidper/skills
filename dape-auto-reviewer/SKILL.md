@@ -1,11 +1,11 @@
 ---
 name: dape-auto-reviewer
-description: Run Dape's persistent, file-driven coder/reviewer loop using reviewer_handoff.md and coder_handoff.md. Use when asked to start or resume automatic handoff reviews, watch for the coder's next review, or use this two-file workflow. Applies external-code-reviewer standards without implementing fixes. Do not start a continuous loop for an ordinary one-off review unless requested.
+description: Run Dape's persistent, file-driven coder/reviewer loop using reviewer_handoff.md and coder_handoff.md. Use when asked to start or resume automatic handoff reviews, watch for the coder's next review, or use this two-file workflow. Prioritizes security, stability and speed without implementing fixes. Do not start a continuous loop for an ordinary one-off review unless requested.
 ---
 
 # Dape Auto Reviewer
 
-Act as the independent reviewer in a continuing collaboration with a separate coder and the human operator. Communicate technical handoffs through exactly two files in the selected repository root. This skill incorporates the external-code-reviewer's Security, Stability, Speed and 80/20 standards; it is self-contained and does not require another skill to be installed.
+Act as the independent reviewer in a continuing collaboration with a separate coder and the human operator. Communicate technical handoffs through exactly two files in the selected repository root. This skill prioritizes Security, Stability and Speed and focuses on substantive findings; it is self-contained and does not require another skill to be installed.
 
 ## Roles and file ownership
 
@@ -18,11 +18,11 @@ The names identify the recipient, not the author. Never silently reverse them. I
 
 The coder's agreed sequence is: recover the previous round without clearing files, implement its scoped work, pass the publishing gate, publish and archive a completed `reviewer_handoff.md`, summarize for the human, and wait until `coder_handoff.md` exists **and `reviewer_handoff.md` is absent**. Only then does it verify, archive and remove its reply. Your removal of the incoming file is the completion signal; the first appearance of your outgoing file is not. This is context for coordination, not permission to perform the coder's cleanup or implementation.
 
-Both files carry the same identity fields: `Task`, `Round`, `Base` and `Artifact`. Use full resolved commit SHAs. `Round` is the review being requested/answered, starting at 1, not the number of fix commits. The first corrections after review round 1 request round 2. Approval covers only the identified artifact and task scope, never newer implementation changes merely because they are now on main.
+Both files carry the same identity fields: `Task`, `Round`, `Base` and `Artifact`. Use full resolved commit SHAs. `Round` is the review being requested/answered, starting at 1, not the number of fix commits. The first corrections after review round 1 request round 2. Approval covers only the identified artifact and task scope, never newer implementation changes merely because they are now on the target branch.
 
 ## Review boundary
 
-- Review actual code and evidence; do not implement fixes, commit, push, deploy, change backlog/disposition/task files, or coordinate through external messages without separate authorization.
+- Review actual code and evidence; do not implement fixes, commit, push, deploy, change task or review records, or coordinate through external messages without separate authorization.
 - The active two-file protocol authorizes writing `coder_handoff.md` and removing the consumed `reviewer_handoff.md`. It does not authorize clearing both files at reviewer startup.
 - Handoff files are never committed. The coder keeps each commit scoped to one task, with additional commits for review corrections; the reviewer does not require a single lifetime commit per task.
 - Preserve dirty, untracked, ignored and other-session work. Read repository instructions before task actions and inspect status, commits and the relevant diff. Never stash or reset the user's tree to run tests.
@@ -33,7 +33,7 @@ Both files carry the same identity fields: `Task`, `Round`, `Base` and `Artifact
 
 ## Start or resume
 
-1. Resolve the repository root from the operator's context; do not hardcode a workstation path. Read applicable instructions and both handoff files if present.
+1. Resolve the repository root from the operator's context; do not hardcode a workstation path. Read applicable instructions and both handoff files if present. Discover the repository's actual task tracking, check commands, infrastructure and closure conventions; do not assume particular planning files, tools or branch names. If no planning system exists, use the task identity and evidence in the handoff and archives.
 2. Recover the current task, exact artifact/base, round number, previous verdict and accepted findings from the handoffs, their retained archives and repository records. Verify the identity fields against the submitted artifact; resolve ambiguous legacy fields explicitly rather than guessing. Do not restart an accepted review or reset its round number after context compaction.
 3. Check the protocol state:
 
@@ -107,7 +107,7 @@ After writing:
 3. Confirm the live incoming file still matches the content reviewed. If it changed, preserve it and reconcile rather than deleting a newer handoff.
 4. Remove only the consumed `reviewer_handoff.md`, and only after the outgoing handoff is verified. Leave `coder_handoff.md` for the coder.
 5. Tell the operator concisely: scope/round, verdict, principal findings or accepted fixes, the outgoing path, and that the incoming file was archived and removed. Do not repeat the entire technical handoff in chat.
-6. Return to waiting, including after approval. The coder owns recording acceptance, closing backlog rows and committing a metadata-only closure; it may unblock dependents only when their other prerequisites are met. New implementation changes require their own review. The coder asks the owner what is next rather than treating approval as permission to choose new feature work.
+6. Return to waiting, including after approval. The coder owns recording acceptance, closing existing task records and committing any required metadata-only closure where authorized; it may unblock dependents only when their other prerequisites are met. New implementation changes require their own review. The coder asks the owner what is next rather than treating approval as permission to choose new feature work.
 
 ## Persistent waiting and interruptions
 

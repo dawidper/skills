@@ -1,14 +1,21 @@
 ---
 name: dape-auto-coder
-description: The ccc coder workflow — claim a backlog task, verify before publishing, keep each commit scoped to one task with its planning rows, exchange artifact-bound handoffs through reviewer_handoff.md and coder_handoff.md, act on the verdict, and ask the owner what is next. Use whenever working a backlog task in this repository.
+description: Run the coder side of a file-driven coding and review loop using reviewer_handoff.md and coder_handoff.md. Implement an authorized task, verify it, publish an artifact-bound handoff, and act on the review. Use when asked to start or resume this paired workflow; ordinary coding requests do not require the loop.
 ---
 
 # dape-auto-coder — the coder's round
 
 Three parties: the **owner** (decides; answers questions), the **coder** (this
 session), the **reviewer** (a separate session that never talks to the coder
-except through two files). The backlog (`platform/BACKLOG.md`) is the status
-authority; `platform/EXECUTION.md` defines claim, verification and closure.
+except through two files).
+
+Before starting, resolve the target repository from the owner's context and
+read its applicable instructions. Discover its task tracking, verification,
+branch, remote and closure conventions from the repository and existing
+authorization. Use its actual paths, commands and status vocabulary. If no
+planning system exists, identify the authorized task in the handoff; do not
+create a backlog or closure file just to satisfy this skill. Commit and push
+only within the authorized scope and destination.
 
 ## The two files, and waiting
 
@@ -48,11 +55,11 @@ Every round:
    Archive a matching reply and its evidence paths outside the working tree,
    then remove **only `coder_handoff.md`**. `REQUEST_CHANGES` → the next
    review round, using the last reviewed artifact as the comparison base.
-   `APPROVE` → close only the approved task and code scope (DONE row,
-   acceptance on closure rows, its finding, dependents whose other
-   prerequisites are also met), commit the closure, push, and ask the owner
-   what is next. A newer HEAD is not automatically approved; additional
-   implementation changes need review. A metadata-only closure is not new
+   `APPROVE` → close only the approved task and code scope using the
+   repository's conventions; unblock dependents only when their other
+   prerequisites are met. Commit any required closure changes and push
+   where authorized, then ask the owner what is next. A newer HEAD is not
+   automatically approved; additional implementation changes need review. A metadata-only closure is not new
    implementation work.
 
 The reviewer's side, for reference: waits for `reviewer_handoff.md`, reviews
@@ -61,64 +68,54 @@ confirms the incoming file is unchanged, removes `reviewer_handoff.md`, and
 waits again. Only the recipient removes a consumed handoff. On interruption,
 preserve this state and resume it instead of resetting the round.
 
-## Owner rules (always in force)
+## Repository rules and scope
 
-- **Never invent product names.** Engineering identifiers are fine; anything
-  a customer would read as a name is the owner's decision.
-- **Questions and decisions requiring the owner go through `AskUserQuestion`.**
-  Batch related decisions into one call; put the recommended option first.
+- Follow the owner's product decisions and the repository's contribution
+  rules. Do not carry assumptions about product naming or feature priorities
+  from another project into this one.
+- Use the available interactive question tool when permitted for decisions
+  requiring the owner; otherwise ask concisely through the available interface.
   Make routine implementation choices independently and record material
-  assumptions in the handoff. Do not ask what a careful colleague would decide
-  alone. If the tool is unavailable, ask one concise question through the
-  available interface rather than inventing a tool call or assuming approval.
-- Features over CI polish, unless the task is the gate itself.
-- The integration suite runs **only** via `make test-integration` in
-  `observability/` (`-p 1`), one at a time, with the environment sourced
-  first; the browser suite and the Go integration suite never share the
-  database concurrently.
-- Owner-modified working-tree files (`CLAUDE.md`, `observability/AGENTS.md`,
-  `observability/CLAUDE.md`, task cards, `platform/README.md`, `reviews/*`,
-  untracked cards, `merge.md`, `.agents/`, `.claude/`) are never committed
-  wholesale. `night_work.md`, `reviewer_handoff.md`, `coder_handoff.md` are
-  never committed.
-- Merged migrations are immutable; a mistake gets a corrective migration.
+  assumptions in the handoff. Existing authorization remains valid.
+- Discover the supported test setup, required environment and infrastructure
+  isolation rules before running checks. Serialize suites when sharing a
+  mutable resource could contaminate their results.
+- Preserve unrelated owner and other-session changes. Stage explicit paths
+  and inspect their contents; do not commit modified files wholesale merely
+  because they are in the repository. Never commit the two handoff files.
+- Follow the repository's compatibility and migration policies when applicable.
 
 ## The work
 
-1. **Claim**: the backlog row → `IN_PROGRESS` (owner "the Claude Code
-   session", base commit). One task per commit; additional commits are
-   expected for review corrections. The relevant rows travel in each commit.
+1. **Claim** the authorized task using the repository's existing tracking
+   convention, if any. Record the actual session identity and base commit
+   where required. Keep commits scoped to the task; additional commits are
+   expected for review corrections. Include relevant planning updates when
+   the repository requires them.
 2. **For a defect, reproduce before fixing**: a detached worktree at the base commit
    (`git worktree add --detach <tmp> <sha>`), the new test copied in (adapt
-   removed APIs by sed), run, record the exact failure text, remove the
-   worktree after preserving the test/probe and its result outside it. For a
+   the probe to the base revision when needed), run, record the exact failure
+   text, remove the worktree after preserving the test/probe and its result outside it. For a
    new feature, use meaningful acceptance tests and negative cases rather
    than manufacturing a pre-fix bug. For a gate or drill task, dated evidence
    replaces the defect reproduction. In later rounds, fix blocking findings
    and necessary regressions; preserve accepted decisions and defer unrelated
    improvements. Record a reasoned disagreement rather than silently ignoring
    a finding or implementing it blindly.
-3. **Implement**, then verify scripted edits with `grep` before trusting
-   them; check every command's exit code explicitly (an empty tail is not
-   success).
-4. **Checks**, by area:
-   - `observability/`: `make lint`, `go test -race ./...`, `make test-integration`
-     when the database is touched, `go test ./internal/docs` when documents are.
-   - `ccc-agent/`: `go test -race ./...`, `make lint`, `GOOS=linux
-     .tools/golangci-lint-<v> run ./...`, `GOOS=linux go vet ./...` (and
-     `-tags docker ./internal/agent/`), `make test-boundary` when the image,
-     worker, executor or channel changed (Docker; ~2 min after the build).
-   - web: `npm run typecheck && npm run lint && npm run format:check && npm test && npm run build`;
-     the Playwright suite when the portal's pages changed.
-   - docs: `npm run docs:generate`, `docs:check`, `docs:validate` — exit codes.
-   Long chains (>10 min) run under a Monitor, never an untracked backgrounded
-   `&`; if unavailable, retain and poll the tool's running session with
-   interruptible waits. Do not start publishing while any required check is running.
-5. **Rows**: the backlog row (status, what was built, round notes) and a
-   closure record in `platform/REVIEW_DISPOSITIONS.md` (date, task/round,
-   what was reproduced and how, the fix, the checks, the limitations), both
-   in the task's commit; update both headers' commit only at acceptance.
-6. **Publishing gate, then commit and push** to `main`, explicit paths:
+3. **Implement**, then inspect the resulting diff and verify scripted edits;
+   check every command's exit code explicitly (an empty tail is not success).
+4. **Checks**: derive the required commands from repository instructions,
+   build scripts and CI configuration. Run checks appropriate to the changed
+   components and their risk, including integration, compatibility, browser
+   or documentation checks when applicable. Do not assume a language, package
+   manager, directory layout or test target exists. Retain and poll the tool's
+   running session for long commands with interruptible waits; do not leave
+   untracked background jobs. Do not publish while a required check is running.
+5. **Records**: update existing task and review records as required by the
+   repository. Include task/round, reproduction evidence, changes, check
+   results and limitations. Record acceptance only after a matching approval.
+   If no such records exist, retain this information in the handoff archive.
+6. **Publishing gate, then commit and push where authorized**, explicit paths:
    - Required checks must have finished successfully before committing the
      implementation, pushing it or announcing review readiness. A failed,
      skipped or unavailable required check needs a documented owner-approved
@@ -135,7 +132,8 @@ preserve this state and resume it instead of resetting the round.
    - Use accurate co-author/model attribution and the actual session URL when
      available, following repository conventions. Do not hardcode a model name,
      invent a session URL or leave a placeholder trailer.
-7. Append the round to `night_work.md` (uncommitted history).
+7. Preserve the round history in the handoff archive outside the working tree.
+   Update an existing session log only when required by the repository.
 
 ## reviewer_handoff.md
 
@@ -150,8 +148,8 @@ Artifact: <full resolved submitted commit SHA>
 
 Round numbers refer to the review requested/answered, not the number of fix
 commits. The first fixes after review round 1 request round 2. Never substitute
-`main`, `HEAD` or an unresolved placeholder for a commit. The reviewer approves
-this artifact and task scope only, not subsequent code. Name the verdict being answered.
+a branch name, `HEAD` or an unresolved placeholder for a commit. The reviewer
+approves this artifact and task scope only, not subsequent code. Name the verdict being answered.
 
 Then: what each finding got (cause, correction, where); pre-fix reproduction
 (table: finding, how, what it showed); new tests; checks run (with results,
@@ -160,8 +158,8 @@ without asking; limitations recorded; files; a suggested verification order;
 the commit; archived submission and evidence locations. Say what did not run
 and why, and identify any owner-approved publishing exception. Never claim a
 check that did not pass. Keep handoff archives and test evidence outside the
-working tree until the cycle is closed; `night_work.md` is a summary, not a
-replacement for the original verdict or its evidence.
+working tree until the cycle is closed; a session summary does not replace
+the original verdict or its evidence.
 
 ## Owner summary (chat)
 

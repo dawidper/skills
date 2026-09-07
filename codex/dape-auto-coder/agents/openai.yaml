@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dape Auto Coder (Codex)"
+  short_description: "Implement tasks through the two-file review loop"
+  default_prompt: "Use $dape-auto-coder to implement the authorized task, verify it, and exchange handoffs with the reviewer until the task is approved or I pause the loop."

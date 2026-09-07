@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dape Auto Reviewer (Codex)"
+  short_description: "Review artifacts through the two-file handoff loop"
+  default_prompt: "Use $dape-auto-reviewer to watch this repository for handoffs, review each submitted artifact, and publish verdicts until I pause the loop."

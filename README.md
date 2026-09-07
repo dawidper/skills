@@ -2,8 +2,8 @@
 
 The paired skills for Dape's file-driven coding and review workflow:
 
-- [dape-auto-coder](dape-auto-coder/SKILL.md): implements and verifies scoped tasks, publishes a handoff, and acts on the review.
-- [dape-auto-reviewer](dape-auto-reviewer/SKILL.md): independently reviews the submitted artifact, publishes its verdict, and waits for the next round. Includes Codex UI metadata under `agents/`.
+- **Coder**: implements and verifies scoped tasks, publishes a handoff, and acts on the review.
+- **Reviewer**: independently reviews the submitted artifact, publishes its verdict, and waits for the next round.
 
 The coder writes `reviewer_handoff.md` in the repository being worked on. The reviewer writes `coder_handoff.md`, verifies and archives its reply, then removes the incoming handoff. The coder consumes the reply only when it exists and the incoming handoff is gone. Both files identify the task, review round, base commit and artifact commit.
 
@@ -14,9 +14,9 @@ These files are standalone skill sources. Editing this repository does not autom
 ## Dedicated versions
 
 Choose one version per role for each client. Each folder is self-contained;
-copy the whole skill folder, keeping its name. The generic folders above remain
-available for other clients. Do not install generic and dedicated copies of the
-same skill into the same client: their names intentionally match.
+copy the whole skill folder from the matching harness directory, keeping its
+name. Replace any older generic installation of the same skill to avoid
+duplicate discovery.
 
 | Client | Coder | Reviewer | Repository install directory | Personal install directory |
 | --- | --- | --- | --- | --- |

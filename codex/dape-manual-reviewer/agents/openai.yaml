@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dape Manual Reviewer (Codex)"
+  short_description: "Review a pasted submission and return a copy-paste verdict"
+  default_prompt: "Use $dape-manual-reviewer to review the submission block I paste in and end with a verdict block I can paste back to the coder. Do not create handoff files or wait for the next submission."

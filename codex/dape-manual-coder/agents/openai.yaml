@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dape Manual Coder (Codex)"
+  short_description: "Implement tasks and hand the owner a copy-paste review request"
+  default_prompt: "Use $dape-manual-coder to implement the authorized task, verify it, and end with a summary block I can paste into the reviewer session. Do not create handoff files or wait for a reply."

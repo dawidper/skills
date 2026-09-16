@@ -70,9 +70,10 @@ Every round:
    then remove **only `coder_handoff.md`**. `REQUEST_CHANGES` → the next
    review round, using the last reviewed artifact as the comparison base.
    `APPROVE` → close only the approved task and code scope using the
-   repository's conventions; unblock dependents only when their other
-   prerequisites are met. Commit any required closure changes and push
-   where authorized, then ask the owner what is next. A newer HEAD is not
+   repository's conventions: the task record to done, acceptance on its
+   closure records, the finding it answered, and dependents whose other
+   prerequisites are also met. Commit the closure, push where authorized,
+   then ask the owner what is next. A newer HEAD is not
    automatically approved; additional implementation changes need review. A metadata-only closure is not new
    implementation work.
 
@@ -82,30 +83,41 @@ confirms the incoming file is unchanged, removes `reviewer_handoff.md`, and
 waits again. Only the recipient removes a consumed handoff. On interruption,
 preserve this state and resume it instead of resetting the round.
 
-## Repository rules and scope
+## Owner rules (always in force)
 
 - Follow the owner's product decisions and the repository's contribution
   rules. Do not carry assumptions about product naming or feature priorities
   from another project into this one.
-- Use the available interactive question tool when permitted for decisions
-  requiring the owner; otherwise ask concisely through the available interface.
+- **Never invent product names.** Engineering identifiers are fine; anything
+  a customer would read as a name is the owner's decision.
+- **Questions and decisions requiring the owner go through `AskUserQuestion`.**
+  Batch related decisions into one call; put the recommended option first.
   Make routine implementation choices independently and record material
-  assumptions in the handoff. Existing authorization remains valid.
+  assumptions in the handoff. Do not ask what a careful colleague would
+  decide alone. If the tool is unavailable, ask one concise question through
+  the available interface rather than inventing a tool call or assuming
+  approval. Existing authorization remains valid.
+- Features over CI polish, unless the task is the gate itself.
 - Discover the supported test setup, required environment and infrastructure
-  isolation rules before running checks. Serialize suites when sharing a
-  mutable resource could contaminate their results.
+  isolation rules before running checks. Run integration suites only through
+  the repository's supported entry point, one at a time, with their
+  environment loaded first; two suites never share a mutable resource such
+  as a test database concurrently.
 - Preserve unrelated owner and other-session changes. Stage explicit paths
-  and inspect their contents; do not commit modified files wholesale merely
-  because they are in the repository. Never commit the two handoff files.
-- Follow the repository's compatibility and migration policies when applicable.
+  (`git add <paths>`, never `-A`) and inspect their contents. Owner-modified
+  files (agent instructions such as `CLAUDE.md`/`AGENTS.md`, task cards,
+  review records, `.claude/`, `.agents/`) are never committed wholesale.
+  Never commit the two handoff files or an uncommitted session log.
+- Merged migrations are immutable; a mistake gets a corrective migration.
+  Follow the repository's other compatibility policies when applicable.
 
 ## The work
 
 1. **Claim** the authorized task using the repository's existing tracking
-   convention, if any. Record the actual session identity and base commit
-   where required. Keep commits scoped to the task; additional commits are
-   expected for review corrections. Include relevant planning updates when
-   the repository requires them.
+   convention, if any: its record to in-progress, with the actual session
+   identity and base commit. One task per commit; additional commits are
+   expected for review corrections. The relevant planning records travel in
+   each commit when the repository keeps them.
 2. **For a defect, reproduce before fixing**: a detached worktree at the base commit
    (`git worktree add --detach <tmp> <sha>`), the new test copied in (adapt
    the probe to the base revision when needed), run, record the exact failure
@@ -116,19 +128,36 @@ preserve this state and resume it instead of resetting the round.
    and necessary regressions; preserve accepted decisions and defer unrelated
    improvements. Record a reasoned disagreement rather than silently ignoring
    a finding or implementing it blindly.
-3. **Implement**, then inspect the resulting diff and verify scripted edits;
-   check every command's exit code explicitly (an empty tail is not success).
+3. **Implement**, then inspect the resulting diff and verify scripted edits
+   with `grep` before trusting them; check every command's exit code
+   explicitly (an empty tail is not success).
 4. **Checks**: derive the required commands from repository instructions,
-   build scripts and CI configuration. Run checks appropriate to the changed
-   components and their risk, including integration, compatibility, browser
-   or documentation checks when applicable. Do not assume a language, package
-   manager, directory layout or test target exists. Retain and poll the tool's
-   running session for long commands with interruptible waits; do not leave
-   untracked background jobs. Do not publish while a required check is running.
+   build scripts and CI configuration, per changed component. Typically:
+   - lint and the unit tests (with the race detector where the language has
+     one) for every component touched;
+   - the integration suite when the database or another external resource
+     is touched;
+   - cross-platform build/vet when the component ships for another OS, and
+     its container/boundary tests when the image or its runtime changed;
+   - the frontend's typecheck, lint, formatting, tests and build, plus the
+     browser suite when pages changed;
+   - documentation and contract tests when documents change. When a
+     generator derives files from what changed (docs, clients, servers),
+     regenerate and commit its output with the change, then run its drift
+     check.
+
+   Do not assume a language, package manager, directory layout or test
+   target exists. Long chains (over ~10 minutes) run under a Monitor, never
+   an untracked backgrounded `&`; otherwise retain and poll the tool's
+   running session with interruptible waits. Do not publish while a
+   required check is running.
 5. **Records**: update existing task and review records as required by the
-   repository. Include task/round, reproduction evidence, changes, check
-   results and limitations. Record acceptance only after a matching approval.
-   If no such records exist, retain this information in the handoff archive.
+   repository — the task record (status, what was built, round notes) and a
+   closure record (date, task/round, what was reproduced and how, the fix,
+   the checks, the limitations), both in the task's commit. Record
+   acceptance, and update any header naming the accepted commit, only after
+   a matching approval. If no such records exist, retain this information in
+   the handoff archive.
 6. **Publishing gate, then commit and push where authorized**, explicit paths:
    - Required checks must have finished successfully before committing the
      implementation, pushing it or announcing review readiness. A failed,
@@ -147,7 +176,8 @@ preserve this state and resume it instead of resetting the round.
      available, following repository conventions. Do not hardcode a model name,
      invent a session URL or leave a placeholder trailer.
 7. Preserve the round history in the handoff archive outside the working tree.
-   Update an existing session log only when required by the repository.
+   If the repository keeps an uncommitted session log, append the round to
+   it; it is a summary, not a replacement for the archived handoffs and evidence.
 
 ## reviewer_handoff.md
 

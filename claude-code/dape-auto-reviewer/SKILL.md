@@ -20,7 +20,8 @@ Act as the independent reviewer in a continuing collaboration with a separate co
 - Prefer `Monitor` with `persistent: true` for handoff watches when exposed.
   Retain its task identifier, report only actual events, and stop this role's
   monitor when the owner pauses or stops the loop. If unavailable, use bounded
-  30–60-second waits and file checks through the available execution tools.
+  interruptible waits and check the files every 2 minutes, following the
+  "Persistent waiting and interruptions" guidance below.
 - For background commands, retain the task identifier and output path; read
   the output and verify completion and exit status before publishing. Do not
   assume tools or background persistence exist in every Claude Code environment.
@@ -83,6 +84,37 @@ Both files carry the same identity fields: `Task`, `Round`, `Base` and `Artifact
 - Do not label a failing test pre-existing or caused by interference without evidence. Report an unexplained failure and any clean rerun separately; a rerun does not explain the failure. Do not hide a failed gate behind a later successful command.
 - If the operator asks for the verdict immediately, publish the evidence available, clearly identifying incomplete verification. Do not invent a passing check or manufacture a defect to justify withholding approval. A concrete missing prerequisite may require a blocked/incomplete review instead of a technical verdict.
 
+## Repository conventions to hold the coder to
+
+Check these against the artifact alongside the code; each is a finding when
+broken, with severity by its real impact.
+
+- **Check coverage.** The evidence covers every changed component with the
+  repository's required checks: lint and unit tests for each, the
+  integration suite when a database or other external resource is touched,
+  cross-platform and container checks when the component ships that way,
+  the frontend and browser gates when pages changed, documentation and
+  contract tests when documents changed. A missing required check without an
+  owner exception is a gate breach, not a pass.
+- **Generated output.** When a generator's input changed (a spec, a
+  contract, documents, an `.env.example`), its regenerated output is
+  committed with the change and the drift check passes. A stale output fails
+  CI later: treat it as P2.
+- **Commit scope.** One task per commit (review corrections may add
+  commits); the task's planning and closure records travel in it when the
+  repository keeps them. No handoff files, session logs or wholesale
+  owner-modified files (agent instructions, task cards, review records,
+  `.claude/`, `.agents/`) in the commit.
+- **Migrations.** A merged migration is immutable; an edit to one is at
+  least P2, and the remedy is a corrective migration. Check the repository's
+  other compatibility rules for schema changes.
+- **Product names.** A customer-visible name the owner has not decided is a
+  finding for the owner's decision, never something to approve silently or
+  rename yourself. Engineering identifiers are fine.
+- **Priorities.** Features come before CI polish unless the task is the gate
+  itself: CI or tooling polish outside the task's scope is a P3 advisory,
+  never a blocker.
+
 ## Publish the reviewer handoff
 
 Write `coder_handoff.md` with enough detail that the coder need not recover the review from chat. Use this shape, omitting empty sections:
@@ -129,9 +161,9 @@ After writing:
 
 ## Persistent waiting and interruptions
 
-- Follow the platform execution guidance above for monitoring or interruptible waits, then perform a read-only file check. Prefer roughly 30–60-second intervals; avoid busy polling and individual blocking waits longer than 60 seconds. Never invent a tool or leave an untracked background shell loop.
+- Follow the platform execution guidance above for monitoring or interruptible waits, then perform a read-only file check. Poll the handoff files every 2 minutes (120 seconds). Keep waits interruptible; when individual waits are limited to 60 seconds, use two consecutive waits without an intervening file check or status message. Owner input interrupts the wait immediately. Avoid busy polling. Never invent a tool or leave an untracked background shell loop.
 - Missing files and unchanged state are expected, not blockers. Do not create an empty handoff, duplicate a verdict, rerun completed checks or terminate the loop merely because the coder has not responded.
-- Give concise progress updates during active review, and occasional waiting updates without flooding the operator. Do not imply new progress when nothing changed.
+- Give concise progress updates during active review. While idle, announce entering the wait once, then report only a changed handoff state, a new review/verdict, a blocker or an owner-requested status. Do not send repeated "still waiting" or unchanged-state reminders.
 - Do not send a final response claiming to monitor in the background unless a real persistent monitoring mechanism is running. In an active foreground loop, remain in the wait mechanism until new work or an operator interruption arrives.
 - An explicit stop, pause, replacement task or required owner decision takes precedence over the loop. Preserve handoffs and report the current state. Resume from that state when asked; never reinterpret persistence as broader implementation or deployment authority.
 - For design/advice questions, answer the question without inventing a code-review verdict. For a genuine external blocker, exhaust safe scoped checks, request the missing input once, and wait for a real change rather than repeating the same escalation.

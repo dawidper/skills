@@ -30,6 +30,14 @@ Both skills discover the target repository's instructions, task tracking, check 
 
 These files are standalone skill sources. Editing this repository does not automatically update copies installed elsewhere.
 
+## Utility skills
+
+| Client | Skill | Purpose | Repository install directory | Personal install directory |
+| --- | --- | --- | --- | --- |
+| Codex | [Cloud Alert Voice](codex/cloud-alert-voice/SKILL.md) | Rewrite infrastructure alerts with technically precise, dry senior-engineer sarcasm aimed at systems and process rather than people | `.agents/skills/` | `~/.agents/skills/` |
+
+Invoke it explicitly in Codex with `$cloud-alert-voice`, or let Codex select it automatically when a request matches its description.
+
 ## Dedicated versions
 
 Choose one version per role for each client. Each folder is self-contained;

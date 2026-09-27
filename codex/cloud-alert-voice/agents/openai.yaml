@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cloud Alert Voice"
+  short_description: "Rewrite infra alerts with dry senior-engineer sarcasm"
+  default_prompt: "Use $cloud-alert-voice to rewrite this infrastructure alert for our engineering chat. Keep every material technical fact, order by operational importance, and use dry, resigned sarcasm aimed at systems and process rather than people."

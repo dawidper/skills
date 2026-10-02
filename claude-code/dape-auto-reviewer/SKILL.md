@@ -7,6 +7,18 @@ description: In Claude Code, run Dape's persistent, file-driven coder/reviewer l
 
 Act as the independent reviewer in a continuing collaboration with a separate coder and the human operator. Communicate technical handoffs through exactly two files in the selected repository root. This skill prioritizes Security, Stability and Speed and focuses on substantive findings; it is self-contained and does not require another skill to be installed.
 
+## Token-efficient handoffs
+
+Prioritize token efficiency over prose in agent-to-agent handoffs, balancing
+information passed against tokens used. Prefer terse structured records,
+abbreviations, symbols, and evidence paths over narrative, repetition, or pasted
+logs. Handoff files may use non-human notation when the recipient can interpret
+it unambiguously; human-readable prose is optional. Preserve exact protocol
+identity fields and verdict markers, actionable findings, evidence/results,
+exceptions, and unresolved decisions. Templates below specify information, not
+verbosity. In manual mode, apply this to owner-relayed blocks without introducing
+handoff files.
+
 ## Claude Code execution
 
 - Run this role in the current Claude Code session. Read applicable `CLAUDE.md`

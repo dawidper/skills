@@ -22,6 +22,18 @@ planning system exists, identify the authorized task in the summary block; do
 not create a backlog or closure file just to satisfy this skill. Commit and
 push only within the authorized scope and destination.
 
+## Token-efficient handoffs
+
+Prioritize token efficiency over prose in agent-to-agent handoffs, balancing
+information passed against tokens used. Prefer terse structured records,
+abbreviations, symbols, and evidence paths over narrative, repetition, or pasted
+logs. Handoff files may use non-human notation when the recipient can interpret
+it unambiguously; human-readable prose is optional. Preserve exact protocol
+identity fields and verdict markers, actionable findings, evidence/results,
+exceptions, and unresolved decisions. Templates below specify information, not
+verbosity. In manual mode, apply this to owner-relayed blocks without introducing
+handoff files.
+
 ## Codex execution
 
 - Run this role in the current Codex session. Read applicable `AGENTS.md`

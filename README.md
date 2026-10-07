@@ -5,14 +5,14 @@ The paired skills for Dape's coding and review workflow, in two modes:
 - **Coder**: implements and verifies scoped tasks, hands over the artifact, and acts on the review.
 - **Reviewer**: independently reviews the submitted artifact, returns its verdict, and takes the next round.
 
-**Automatic (`dape-auto-*`)** relays through two files and each session waits
+**Automatic (`dape-auto-*`)** relays through numbered handoff files and each session waits
 for the other. **Manual (`dape-manual-*`)** has no handoff files and no
 waiting: each round ends with a self-contained block that the owner copies into
 the other session. Pick one mode per pair; do not mix them in one checkout.
 
 ## Automatic mode
 
-The coder writes `reviewer_handoff.md` in the repository being worked on. The reviewer writes `coder_handoff.md`, verifies and archives its reply, then removes the incoming handoff. The coder consumes the reply only when it exists and the incoming handoff is gone. Both files identify the task, review round, base commit and artifact commit.
+The coder writes `reviewer_handoff_NNNN.md` in the repository being worked on, where `NNNN` is a four-digit sequence number that is never reused. A reviewer claims it atomically with `reviewer_handoff_NNNN.claim`, writes `coder_handoff_NNNN.md`, verifies and archives its reply in the shared archive (`~/handoff-archive/<repo-dir-name>/NNNN/` unless the repository names another), then removes the incoming handoff and its claim. The coder consumes the reply only when it exists and the incoming handoff is gone. Both files of a pair identify the task, review round, base commit, artifact commit and `Seq`; from round 2 the submission names its `Previous` verdict, and the reply adds `Reviewer`. Several reviewer sessions can review different submissions at the same time; unnumbered legacy files are finished under the old rules, then the loop switches.
 
 ## Manual mode
 
@@ -71,8 +71,9 @@ Run the two roles in separate sessions. Either client can fill either role,
 including a mixed Claude Code/Codex pair, and the two sides do not have to run
 the same client. Both sides of a manual pair still assume one shared repository
 checkout, since the blocks name commits and local evidence paths. Use one coder
-and one reviewer per checkout; concurrent automatic pairs need separate
-checkouts to avoid sharing the two handoff filenames. Pausing an automatic
+per checkout, with one reviewer in manual mode; in automatic mode several
+reviewer sessions can share it, since each submission has its own number and
+claim. Pausing an automatic
 session must preserve its handoff state; a stopped session is not an active
 watch. A manual session holds no state between rounds beyond its archives, so
 it can be closed and resumed freely.

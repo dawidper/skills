@@ -53,7 +53,9 @@ handoff files.
 | coder → reviewer | the coder's submission block, pasted by the operator | "review this artifact" |
 | reviewer → coder | the verdict block ending this round | the review disposition |
 
-- Never create, expect or wait for `reviewer_handoff.md` or `coder_handoff.md`.
+- Never create, expect or wait for the automatic mode's numbered handoff files
+  (`reviewer_handoff_NNNN.md`, `coder_handoff_NNNN.md`, their `.claim` files)
+  or their legacy unnumbered forms.
   If those files exist from a file-driven run, leave them untouched and tell the
   operator which mode the repository appears to be in; do not mix modes or
   delete another session's protocol state.

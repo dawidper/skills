@@ -59,7 +59,9 @@ Communication with the reviewer is only through blocks the owner copies:
 | coder → reviewer | the summary block ending this round | "review this artifact" |
 | reviewer → coder | the reviewer's block, pasted by the owner | the verdict |
 
-- Never create, expect or wait for `reviewer_handoff.md` or `coder_handoff.md`.
+- Never create, expect or wait for the automatic mode's numbered handoff files
+  (`reviewer_handoff_NNNN.md`, `coder_handoff_NNNN.md`, their `.claim` files)
+  or their legacy unnumbered forms.
   If those files already exist from a file-driven run, leave them untouched and
   tell the owner which mode the repository appears to be in; do not mix modes
   or delete another session's protocol state.

@@ -1,11 +1,11 @@
 ---
 name: dape-auto-reviewer
-description: In Codex, run Dape's persistent, file-driven coder/reviewer loop using reviewer_handoff.md and coder_handoff.md. Use when asked to start or resume automatic handoff reviews, watch for the coder's next review, or use this two-file workflow. Prioritizes security, stability and speed without implementing fixes. Do not start a continuous loop for an ordinary one-off review unless requested.
+description: In Codex, run Dape's persistent, file-driven coder/reviewer loop using numbered reviewer/coder handoff files. Use when asked to start or resume automatic handoff reviews, watch for the coder's next review, or use this numbered handoff workflow. Prioritizes security, stability and speed without implementing fixes. Do not start a continuous loop for an ordinary one-off review unless requested.
 ---
 
 # Dape Auto Reviewer
 
-Act as the independent reviewer in a continuing collaboration with a separate coder and the human operator. Communicate technical handoffs through exactly two files in the selected repository root. This skill prioritizes Security, Stability and Speed and focuses on substantive findings; it is self-contained and does not require another skill to be installed.
+Act as the independent reviewer in a continuing collaboration with a separate coder and the human operator. Communicate technical handoffs through numbered reviewer/coder handoff files in the selected repository root. This skill prioritizes Security, Stability and Speed and focuses on substantive findings; it is self-contained and does not require another skill to be installed.
 
 ## Token-efficient handoffs
 
@@ -42,44 +42,109 @@ handoff files.
   protocol state and report that the watch has stopped. On resumption, recover
   from the files and archives before acting.
 
-## Roles and file ownership
+## Numbered handoffs (owner, 2026-10-07)
 
-| File | Written by | Read by | Removed by |
+Communicate through numbered reviewer/coder handoff files at the repository
+root, never committed. Each submission has a four-digit zero-padded sequence
+NNNN, never reused. Multiple reviewer sessions may review different submissions.
+
+| File | Written by | Removed by | Meaning |
 |---|---|---|---|
-| `reviewer_handoff.md` | Coder | Reviewer | Reviewer, after publishing and verifying the reply |
-| `coder_handoff.md` | Reviewer | Coder | Coder, after consuming the reply and starting its next round |
+| `reviewer_handoff_NNNN.md` | coder | claiming reviewer, after verified and archived reply | review this |
+| `reviewer_handoff_NNNN.claim` | reviewer | same reviewer, after removing its submission | claimed review |
+| `coder_handoff_NNNN.md` | reviewer | coder, after verification and archiving | verdict |
+
+Shared archive: `~/handoff-archive/<repo-dir-name>/NNNN/`, containing
+`submission.md`, `verdict.md` and `evidence/`, unless repository instructions
+name another location. Never archive inside the working tree.
+
+Identity: `Task`, `Round`, `Base`, `Artifact`, `Seq`. Use full resolved commit
+SHAs. Round counts requested reviews, starting at 1, not fix commits. From
+round 2, add `Previous: NNNN` (the last verdict for this task) and its archive
+path. Reviewers echo every identity field and add `Reviewer: <session id>`.
+Approval covers only the identified artifact and task scope.
+
+### Coder
+
+1. Recover existing submissions, verdicts, archives and task records; never
+   clear handoffs at startup. At most one outstanding submission per task;
+   different tasks may each have one.
+2. Complete the work and publishing gate. Allocate NNNN = 1 + the highest
+   number in repository-root `*_handoff_*.md`, `*.claim` and the shared archive.
+   Write `reviewer_handoff_NNNN.md.tmp`, then atomically create the submission
+   with `set -o noclobber; cat reviewer_handoff_NNNN.md.tmp > reviewer_handoff_NNNN.md` in zsh/bash.
+   On collision re-allocate; remove only your temp file and read back the result.
+   Archive the exact submission and summarize for the owner. Do not alter it
+   while submitted, or touch another number's files or any `.claim`.
+3. Wait per owned submission until `coder_handoff_NNNN.md` exists **and**
+   `reviewer_handoff_NNNN.md` is absent. Removal is the completion signal,
+   not the first appearance of a verdict. One supported watch may cover all
+   submissions you own; use interruptible waits, never busy polling.
+4. Verify Task/Round/Base/Artifact/Seq against the archived submission.
+   Preserve mismatched, incomplete or blocked replies and resolve the specific
+   discrepancy. Archive a matching verdict and evidence, then remove only
+   `coder_handoff_NNNN.md`. REQUEST_CHANGES starts the next round using the
+   last reviewed artifact as base. APPROVE permits closure only of that task
+   and scope under repository conventions: done and acceptance records,
+   the finding answered, and dependents whose other prerequisites are met.
+   Commit closure and push where authorized, then ask the owner what is next.
+   New implementation requires review; metadata-only closure does not.
+
+### Reviewer
+
+1. Watch `reviewer_handoff_*.md` without a matching `.claim`. Prefer continuity
+   for a later round of a task you previously reviewed when multiple are
+   unclaimed; otherwise take the lowest unclaimed number.
+2. Claim atomically in zsh/bash:
+   `set -o noclobber; echo "<session id> <ISO time>" > reviewer_handoff_NNNN.claim`.
+   If creation fails, another reviewer
+   owns it: move to the next number. Do not read deeply before holding its claim.
+   Never review, remove or overwrite a number you have not claimed.
+3. Recover the task and round. When taking another reviewer's task, read
+   Previous's archived verdict first; preserve accepted findings and open
+   P1/P2s. Review the actual artifact and evidence under the rules below.
+4. Write `coder_handoff_NNNN.md` atomically using a temp file plus rename,
+   echoing all identity fields and Reviewer, then read back and verify it.
+5. Archive submission, verified verdict and evidence in the shared archive.
+   Confirm the live submission matches exactly what was reviewed. Remove
+   only `reviewer_handoff_NNNN.md`, then its `.claim`, in that order.
+   Leave the verdict for the coder and return to watching, including on approval.
+
+### Recovery and collisions
+
+- Claim without a matching submission: its reviewer owner removes it after
+  recovering the completed verdict; anyone else reports it to the owner.
+- Stale claim (claiming session gone, no verdict): only the human owner
+  releases it. Reviewers never steal claims.
+- Both numbered submission and verdict present: claimant completes interrupted
+  archiving and removal only if the verdict answers the exact identity and Seq;
+  otherwise preserve both and ask the owner. Never overwrite an unconsumed reply.
+- Legacy unnumbered `reviewer_handoff.md` / `coder_handoff.md`: finish an
+  in-flight pair under the old rules, without renaming it. The reviewer verifies
+  and archives the reply, confirms unchanged incoming content, then removes
+  only the incoming file. The coder consumes its reply only after incoming
+  removal, verifies and archives it, then removes only the reply. Preserve
+  both on a collision unless the reply demonstrably answers that exact round.
+  Once no legacy pair is pending, stop its watch and use numbered files.
 
 The names identify the recipient, not the author. Never silently reverse them. If the operator names the other file while asking to resume the established loop, explain the distinction briefly, inspect the named file too, and watch for the actual incoming review. Do not review your own outgoing verdict as though it were the coder's work.
-
-The coder's agreed sequence is: recover the previous round without clearing files, implement its scoped work, pass the publishing gate, publish and archive a completed `reviewer_handoff.md`, summarize for the human, and wait until `coder_handoff.md` exists **and `reviewer_handoff.md` is absent**. Only then does it verify, archive and remove its reply. Your removal of the incoming file is the completion signal; the first appearance of your outgoing file is not. This is context for coordination, not permission to perform the coder's cleanup or implementation.
-
-Both files carry the same identity fields: `Task`, `Round`, `Base` and `Artifact`. Use full resolved commit SHAs. `Round` is the review being requested/answered, starting at 1, not the number of fix commits. The first corrections after review round 1 request round 2. Approval covers only the identified artifact and task scope, never newer implementation changes merely because they are now on the target branch.
 
 ## Review boundary
 
 - Review actual code and evidence; do not implement fixes, commit, push, deploy, change task or review records, or coordinate through external messages without separate authorization.
-- The active two-file protocol authorizes writing `coder_handoff.md` and removing the consumed `reviewer_handoff.md`. It does not authorize clearing both files at reviewer startup.
+- The active numbered protocol authorizes claiming a submission, writing `coder_handoff_NNNN.md` and removing the consumed `reviewer_handoff_NNNN.md`. It does not authorize clearing both files at reviewer startup.
 - Handoff files are never committed. The coder keeps each commit scoped to one task, with additional commits for review corrections; the reviewer does not require a single lifetime commit per task.
 - Preserve dirty, untracked, ignored and other-session work. Read repository instructions before task actions and inspect status, commits and the relevant diff. Never stash or reset the user's tree to run tests.
-- Put test edits, synthetic fixtures and evidence in an isolated snapshot or disposable worktree outside the working repository. Use the environment's required editing mechanism. Archive handoffs outside the repository; do not introduce a third repository coordination file.
+- Put test edits, synthetic fixtures and evidence in an isolated snapshot or disposable worktree outside the working repository. Use the environment's required editing mechanism. Archive handoffs outside the repository; do not introduce other repository coordination files beyond numbered handoffs and claims.
 - Use authorized test infrastructure only. Existing permission for Docker tests need not be requested repeatedly; it is not permission to remove unrelated containers, volumes or data. Give review resources unique names and clean up only resources this review created. Follow repository-specific database isolation and serialization rules; never overlap suites on a shared test database when that can contaminate them.
 - No subagents or parallel agents unless the operator explicitly authorizes delegation. Independent tool checks may run concurrently when they cannot interfere.
 - If a tool unexpectedly changes the owner's tree, stop that operation and report what changed; do not silently repair or delete owner work.
 
 ## Start or resume
 
-1. Resolve the repository root from the operator's context; do not hardcode a workstation path. Read applicable instructions and both handoff files if present. Discover the repository's actual task tracking, check commands, infrastructure and closure conventions; do not assume particular planning files, tools or branch names. If no planning system exists, use the task identity and evidence in the handoff and archives.
+1. Resolve the repository root from the operator's context; do not hardcode a workstation path. Read applicable instructions and inspect handoff and claim state; read a numbered submission deeply only after claiming it. Discover the repository's actual task tracking, check commands, infrastructure and closure conventions; do not assume particular planning files, tools or branch names. If no planning system exists, use the task identity and evidence in the handoff and archives.
 2. Recover the current task, exact artifact/base, round number, previous verdict and accepted findings from the handoffs, their retained archives and repository records. Verify the identity fields against the submitted artifact; resolve ambiguous legacy fields explicitly rather than guessing. Do not restart an accepted review or reset its round number after context compaction.
-3. Check the protocol state:
-
-   | Incoming `reviewer_handoff.md` | Outgoing `coder_handoff.md` | Reviewer action |
-   |---|---|---|
-   | Absent | Absent | Wait for the coder |
-   | Absent | Present | Preserve the published verdict; wait for the coder |
-   | Present | Absent | Read and review the incoming artifact |
-   | Present | Present | Reconcile before changing either file |
-
-   For both-present recovery: if the outgoing verdict demonstrably answers this exact incoming artifact and round, verify and archive it, then complete the interrupted incoming-file removal. Otherwise preserve both and ask the operator to resolve the collision; do not overwrite an unconsumed verdict.
+3. Recover numbered claims and verdicts under the recovery rules above; finish any in-flight legacy pair before switching.
 4. Treat the handoff as a coordination signal, not proof. If it is visibly incomplete, still being written, has placeholder hashes, or names an unavailable artifact, preserve it and establish what is actually ready. Report missing information rather than inventing a commit or claiming tests passed.
 5. Retain the received content or its digest so an incoming file replaced during review cannot be mistaken for the one consumed.
 
@@ -133,7 +198,7 @@ broken, with severity by its real impact.
 
 ## Publish the reviewer handoff
 
-Write `coder_handoff.md` with enough detail that the coder need not recover the review from chat. Use this shape, omitting empty sections:
+Write `coder_handoff_NNNN.md` with enough detail that the coder need not recover the review from chat. Use this shape, omitting empty sections:
 
 ```text
 <scope> review, round N
@@ -142,6 +207,9 @@ Task: <same task ID or agreed batch IDs as the submission>
 Round: <same requested review round>
 Base: <full resolved comparison commit SHA>
 Artifact: <full resolved submitted commit SHA>
+Seq: <same submission sequence>
+Previous: <same previous verdict sequence and archive path; round 2 onward>
+Reviewer: <session id>
 Review disposition.
 
 Blocking findings, worst first:
@@ -168,10 +236,10 @@ If a concrete external blocker prevents a verdict, identify the exact missing pr
 
 After writing:
 
-1. Read back and verify the complete outgoing file, matching Task/Round/Base/Artifact fields and verdict. Never signal success based only on a file-write attempt, and never remove the incoming file while the reply is incomplete.
-2. Archive the received incoming handoff, verified outgoing reply and relevant test evidence outside the repository before removal. Record recoverable evidence paths and retain them through closure; a chat summary is not a substitute for the original verdict.
+1. Read back and verify the complete outgoing file, matching Task/Round/Base/Artifact/Seq fields and Reviewer and verdict. Never signal success based only on a file-write attempt, and never remove the incoming file while the reply is incomplete.
+2. Archive the received incoming handoff, verified outgoing reply and relevant test evidence in the shared archive before removal. Record recoverable evidence paths and retain them through closure; a chat summary is not a substitute for the original verdict.
 3. Confirm the live incoming file still matches the content reviewed. If it changed, preserve it and reconcile rather than deleting a newer handoff.
-4. Remove only the consumed `reviewer_handoff.md`, and only after the outgoing handoff is verified. Leave `coder_handoff.md` for the coder.
+4. Remove only the consumed `reviewer_handoff_NNNN.md`, then its matching `.claim`, and only after the outgoing handoff is verified and archived. Leave `coder_handoff_NNNN.md` for the coder.
 5. Tell the operator concisely: scope/round, verdict, principal findings or accepted fixes, the outgoing path, and that the incoming file was archived and removed. Do not repeat the entire technical handoff in chat.
 6. Return to waiting, including after approval. The coder owns recording acceptance, closing existing task records and committing any required metadata-only closure where authorized; it may unblock dependents only when their other prerequisites are met. New implementation changes require their own review. The coder asks the owner what is next rather than treating approval as permission to choose new feature work.
 

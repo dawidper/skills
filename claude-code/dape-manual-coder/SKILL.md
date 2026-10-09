@@ -50,6 +50,26 @@ handoff files.
   the output and verify completion and exit status before publishing. Do not
   assume tools or background persistence exist in every Claude Code environment.
 
+## Temporary files: the repository's `.tmp/`, never `/tmp` (owner, 2026-10-09)
+
+Nothing that matters lives in `/tmp`, `/private/tmp` or `$TMPDIR`: the system
+wipes them at reboot, and on 2026-10-09 a reboot took every in-flight worktree,
+record, review snapshot and queue tool with it. Use the repository's own
+work directory, **`<repo>/.tmp/`**, for everything temporary — task and review
+worktrees, snapshots, reproductions and probes, check logs, evidence before it
+is archived, records, helper scripts, scratch notes. Layout: `<repo>/.tmp/<task>/…`
+for a task's work (`rN/` per round), `<repo>/.tmp/review-NNNN/…` for a review.
+
+- Keep `.tmp/` ignored by git (`/.tmp/` in `.git/info/exclude`, and in
+  `.gitignore` once the repository carries it) and out of every scan — lint,
+  formatter, CSS source detection, container build contexts. Never commit it.
+- Create worktrees under it (`git worktree add --detach <repo>/.tmp/<task>/wt <sha>`);
+  remove them with `git worktree remove` and delete the task's directory once
+  its cycle is closed and its evidence is in the handoff archive.
+- The handoff archive stays at `~/handoff-archive/<repo-dir-name>/`.
+- Only throwaway, regenerable data may use the system temp directory: build
+  caches, and locks that should vanish at reboot.
+
 ## The relay, and ending the round
 
 Communication with the reviewer is only through blocks the owner copies:
